@@ -1,0 +1,6 @@
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.apache.spark</groupId>
+  <artifactId>spark-core_2.10</artifactId>
+  <version>1.5.2</version>
+</project>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="jar/src/main/java"/>
+	<classpathentry kind="src" path="jar/src/main/resources"/>
+	<classpathentry kind="src" path="jar/src/test/resources"/>
+	<classpathentry kind="src" path="jar/src/test/java"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/hadoop_library"/>
+	<classpathentry kind="output" path="classes"/>
+</classpath>

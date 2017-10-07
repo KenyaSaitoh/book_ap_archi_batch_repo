@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="spark_sales_one" basedir=".." default="make-jar">
+  <!-- プロパティ（ディレクトリ）を定義 -->
+  <property name="build.dir" value="./build" />
+  <property name="jar.dir"   value="./jar" />
+
+  <!-- プロパティファイルを読み込み -->
+  <property file="${build.dir}/build.properties" />
+
+  <!-- その他のプロパティを定義 -->
+  <property name="jar.name" value="${project.package.name}.jar" />
+
+  <!-- クラスパスを定義 -->
+  <path id="jar.class.path">
+    <fileset dir="${jar.dir}/lib"           includes="*.jar" />
+    <fileset dir="${spark.lib.dir}"         includes="*.jar" />
+    <fileset dir="${hadoop.lib.dir}"        includes="*.jar" />
+    <fileset dir="${hadoop.hdfs.lib.dir}"   includes="*.jar" />
+    <fileset dir="${hadoop.mapred.lib.dir}" includes="*.jar" />
+  	<fileset dir="${hadoop.yarn.lib.dir}"   includes="*.jar" />
+  </path>
+
+  <!-- ##### JARを作成 ##### -->
+  <target name="make-jar">
+    <!-- ターゲットディレクトリを初期化 -->
+    <delete dir="${jar.dir}/target" includeEmptyDirs="true" defaultexcludes="on" />
+    <mkdir  dir="${jar.dir}/target/classes" />
+    <!-- コンパイル -->
+    <javac srcdir="${jar.dir}/src/main/java"
+           destdir="${jar.dir}/target/classes"
+           source="${compile.jvm}"
+       	   encoding="${compile.encoding}"
+           verbose="${compile.verbose}"
+           debug="${compile.debug}"
+           deprecation="${compile.deprecation}">
+      <include name="**/*.java" />
+      <classpath refid="jar.class.path" />
+    </javac>
+    <!-- プロパティファイルをUnicode変換してコピー -->
+    <native2ascii src="${jar.dir}/src/main/resources"
+                  dest="${jar.dir}/target/classes"
+                  encoding="${compile.encoding}">
+      <include name="**/*.properties" />
+    </native2ascii>
+    <!-- その他のリソースをコピー -->
+    <copy todir="${jar.dir}/target/classes">
+      <fileset dir="${jar.dir}/src/main/resources">
+        <exclude name="**/*.properties" />
+      </fileset>
+    </copy>
+    <unjar dest="${jar.dir}/target/classes">
+      <fileset dir="${jar.dir}/lib" includes="*.jar" />
+    </unjar>
+    <!-- JARを作成 -->
+    <jar jarfile="${jar.dir}/target/${jar.name}">
+      <fileset dir="${jar.dir}/target/classes" includes="**" />
+    </jar>
+  </target>
+
+  <!-- ##### ターゲットディレクトリの初期化 ##### -->
+  <target name="clean">
+    <delete dir="${jar.dir}/target" includeEmptyDirs="true" defaultexcludes="on" />
+    <mkdir  dir="${jar.dir}/target" />
+  </target>
+
+</project>
