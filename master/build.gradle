@@ -1,0 +1,162 @@
+import groovy.sql.Sql
+
+allprojects {
+    // 初期化処理
+    buildscript {
+        repositories {
+            jcenter()
+        }
+        dependencies {
+            classpath "mysql:mysql-connector-java:5.1.29"
+            classpath "org.apache.derby:derbyclient:10.12.1.1"
+        }
+    }
+    // リポジトリ設定
+    repositories {
+        jcenter()
+    }
+}
+
+subprojects {
+    // プラグイン読み込み
+    apply plugin: "java"
+    apply plugin: "eclipse"
+    apply plugin: "jacoco"
+    apply plugin: "findbugs"
+
+    // 文字コード設定
+    def defaultEncoding = "UTF-8"
+    tasks.withType(AbstractCompile).each { it.options.encoding = defaultEncoding }
+
+    // Java EE7依存関係設定
+    dependencies {
+       // providedCompile "javax:javaee-api:7.0"
+       // providedCompile "jstl:jstl:1.2"
+       // compile "junit:junit:4.12"
+       // testCompile "junit:junit:4.12"
+    }
+
+    // Javaプラグイン設定
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    // ソースフォルダの設定
+    sourceSets {
+        main {
+            java {
+                srcDir "src/main/java"
+                srcDir "src/main/webapp"
+            }
+            resources {
+                srcDir "src/main/resources"
+            }
+        }
+        test {
+            java {
+                srcDir "src/test/java"
+            }
+            resources {
+                srcDir "src/test/resources"
+            }
+        }
+    }
+
+    // Eclipseプラグイン設定
+    eclipse {
+        classpath {
+            defaultOutputDir = file("classes")
+        }
+    }
+
+    // 初期データをセットアップする（MySQL）
+    task setupMySQL << {
+        execSqlDir("$projectDir/sql/mysql", conf.mysql.general.url,
+                conf.mysql.general.user, conf.mysql.general.password,
+                conf.mysql.driverClass)
+    }
+
+    // タスクをグループ化する
+    [setupMySQL]*.group = "setup-init-data"
+}
+
+// 設定情報の読み込み
+def conf = {
+    def slurper = new ConfigSlurper()
+    slurper.binding = project.properties
+    def files = files(
+            "${System.properties["user.home"]}/ap-archi-conf.gradle")
+    files.inject(new ConfigObject()) { conf, file ->
+        file.exists() ? conf.merge(slurper.parse(file.toURL())) : conf
+    }
+}()
+
+// 設定情報を拡張プロパティにセット
+ext.conf = conf
+
+// SQLを発行するメソッド（ディレクトリ指定）
+def execSqlDir(dir, url, user, password, driverClass) {
+    new File(dir).listFiles().sort{a, b -> a.name <=> b.name}.each{ File f ->
+        ant.sql(url: url,
+            userid: user,
+            password: password,
+            driver: driverClass,
+            classpath: buildscript.configurations.classpath.asPath,
+            encoding: "UTF-8",
+            onerror: "continue") {
+                fileset(file: f)
+            }
+    }
+}
+
+// SQLを発行するメソッド（ファイル指定）
+def execSql(file, url, user, password, driverClass) {
+    ant.sql(
+        driver: driverClass,
+        url: url,
+        userid: user,
+        password: password,
+        classpath: buildscript.configurations.classpath.asPath,
+        encoding: "UTF-8",
+        onerror: "continue") {
+            fileset(file: file)
+        }
+}
+
+// MySQLを初期化する
+task initMySQL << {
+    execSql("$projectDir/sql/mysql/DROP_MYSQL_USER.sql",
+            conf.mysql.general.baseUrl, "root", conf.mysql.rootPassword,
+            conf.mysql.driverClass)
+    execSql("$projectDir/sql/mysql/DROP_MYSQL_DATABASE.sql",
+            conf.mysql.general.baseUrl, "root", conf.mysql.rootPassword,
+            conf.mysql.driverClass)
+    execSql("$projectDir/sql/mysql/CREATE_MYSQL_USER.sql",
+            conf.mysql.general.baseUrl, "root", conf.mysql.rootPassword,
+            conf.mysql.driverClass)
+    execSql("$projectDir/sql/mysql/CREATE_MYSQL_DATABASE.sql",
+            conf.mysql.general.baseUrl, "root", conf.mysql.rootPassword,
+            conf.mysql.driverClass)
+}
+
+// MySQLのJDBCドライバをコピーする
+task copyMySQLJDBCDriver << {
+    copy {
+        from conf.mysql.driverDir + "/" + conf.mysql.driverJar
+        into conf.glassfish.glassfishDir + "/domains/" +
+             conf.glassfish.domainName + "/lib/ext"
+    }
+}
+
+// Classpathファイル（マスター）を各プロジェクトに配布する
+task copyClasspathFile << {
+    subprojects.project.projectDir.each { File dir ->
+        copy {
+            from "master.classpath"
+            into dir.getPath()
+            rename { String fileName ->
+                fileName.replace("master.classpath", ".classpath")
+            }
+        }
+    }
+}
+
