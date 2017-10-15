@@ -7,10 +7,9 @@ Enter password:
 mysql> CREATE DATABASE metastore;
 mysql> USE metastore;
 mysql> SOURCE /usr/lib/hive/scripts/metastore/upgrade/mysql/hive-schema-1.1.0.mysql.sql;
-mysql> CREATE USER 'hive'@'cdh5-1' IDENTIFIED BY 'hivehive';  ←localhostではなくcdh5-1にすること!!!
+mysql> CREATE USER 'hive'@'cdh5-1' IDENTIFIED BY 'hivehive';
 mysql> REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'hive'@'cdh5-1';
-mysql> GRANT SELECT,INSERT,UPDATE,DELETE,LOCK TABLES,EXECUTE ON metastore.* TO 'hive'@'cdh5-1';
-mysql> FLUSH PRIVILEGES;
+mysql> GRANT SELECT,INSERT,UPDATE,DELETE,LOCK TABLES,EXECUTE ON metastore.* TO 'hive'@'cdh5-1';mysql> FLUSH PRIVILEGES;
 mysql> quit;
 
 ★設定ファイル
@@ -49,33 +48,11 @@ $ vi /usr/lib/hive/conf/hive-site.xml
 
 ★hiveコンソールの起動
 $ hive  ※Pathが通っているのでこれでOK
-$ beeline ← CDH5からはこっち？
 
-★Customer
-テーブル作成
-hiveコマンドで以下のSQLを実行してテーブル作成する
-・CUSTOMERテーブル
-hive < /work/init_data/customer/CUSTOMER_DDL_HIVE.sql
-
-・データインポート
-hiveコンソールから、以下のようにしてデータをインポートする。
-5M件
-hive> LOAD DATA LOCAL INPATH '/work/init_data/customer/csv/CUSTOMER_5M.csv' OVERWRITE INTO TABLE CUSTOMER2;
-
-・パラメータ設定
-SET mapred.max.split.size=50000000;
-# 50MBに分割。データ全体が785MBなので、16スプリットになる。
-
-・SQLの例
-SELECT GENDER,JOB_ID,COUNT(*) FROM CUSTOMER2 GROUP BY GENDER,JOB_ID;
-SELECT GENDER,AGE,JOB_ID,COUNT(*) FROM CUSTOMER2 GROUP BY GENDER,AGE,JOB_ID;
-SELECT COUNT(*) FROM CUSTOMER2 WHERE CUSTOMER_NAME LIKE '%ひろ%';
-
-★SalesOne
+★Sales
 ・テーブル作成、データインポート
-cd /work/init_data/sales_one
-hive < SALES_ONE_DDL_HIVE.sql
-hive < SALES_ONE_IMPORT_TO_HIVE.sql
+hive < SALES_DDL_HIVE.sql
+hive < SALES_IMPORT_TO_HIVE.sql
 
 ・SQLの例(1)
 SELECT PRODUCT_ID, COUNT(*) FROM SALES_ONE
@@ -87,41 +64,8 @@ SELECT REGEXP_REPLACE(PRODUCT_ID, '-', ''), COUNT(*) FROM SALES_ONE
 WHERE PRODUCT_ID LIKE 'A-%'
 GROUP BY PRODUCT_ID;
 
-・テーブル作成、データインポート（Parquet）
-cd /work/init_data/sales_one
-hive < SALES_ONE_DDL_HIVE_PARQUET.sql
-hive < SALES_ONE_IMPORT_TO_HIVE_PARQUET.sql
-
-★Sales
-・テーブル作成、データインポート
-cd /work/init_data/sales
-hive < SALES_DDL_HIVE.sql
-./sales_clean_hive.sh
-hive < SALES_IMPORT_TO_HIVE.sql
-
-・SQLの例
-2テーブル結合
-SELECT C.AGE, COUNT(*) FROM SALES_TRAN S JOIN CUSTOMER C ON S.CUSTOMER_ID = C.CUSTOMER_ID
-GROUP BY C.AGE;
-
-★Sales Big
-・テーブル作成、データインポート
-cd /work/init_data/sales_big
-hive < SALES_DDL_HIVE.sql
-hive < SALES_IMPORT_TO_HIVE.sql
-
-・SQLの例
-2テーブル結合
-SELECT C.AGE, COUNT(*) FROM SALES_TRAN S JOIN CUSTOMER C ON S.CUSTOMER_ID = C.CUSTOMER_ID
-GROUP BY C.AGE;
-
-・テーブル作成、データインポート（Parquet）
-hive < SALES_DDL_HIVE_PARQUET.sql
-hive < SALES_IMPORT_TO_HIVE_PARQUET.sql
-
 ★Sales B2B
 ・テーブル作成、データインポート
-cd /work/init_data/sales_b2b
 hive < SALES_B2B_DDL_HIVE.sql
 hive < SALES_B2B_IMPORT_TO_HIVE.sql
 
@@ -177,6 +121,5 @@ WHERE YEAR(ST1.SALES_DATE) = '2015' AND MONTH(ST1.SALES_DATE) = '01'
 GROUP BY ST1.CUSTOMER_ID, PREV_SALES_AMOUNT
 ORDER BY SALES_AMOUNT_DIFF DESC;
 
-監視
-tail -f /var/log/hadoop-yarn/containers/application_*/container_*/syslog
+
 
