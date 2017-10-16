@@ -1,75 +1,4 @@
-★JDBCドライバコピー
-$ cp mysql-connector-java-5.1.24-bin.jar /usr/lib/hive/lib/
-
-★hiveユーザの作成
-$ mysql -u root -p
-Enter password:
-mysql> CREATE DATABASE metastore;
-mysql> USE metastore;
-mysql> SOURCE /usr/lib/hive/scripts/metastore/upgrade/mysql/hive-schema-1.1.0.mysql.sql;
-mysql> CREATE USER 'hive'@'cdh5-1' IDENTIFIED BY 'hivehive';
-mysql> REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'hive'@'cdh5-1';
-mysql> GRANT SELECT,INSERT,UPDATE,DELETE,LOCK TABLES,EXECUTE ON metastore.* TO 'hive'@'cdh5-1';mysql> FLUSH PRIVILEGES;
-mysql> quit;
-
-★設定ファイル
-$ vi /usr/lib/hive/conf/hive-site.xml
-
-<configuration>
-  <property>
-    <name>javax.jdo.option.ConnectionURL</name>
-    <value>jdbc:mysql://cdh5-1/metastore</value>
-  </property>
-  <property>
-    <name>javax.jdo.option.ConnectionDriverName</name>
-    <value>com.mysql.jdbc.Driver</value>
-  </property>
-  <property>
-    <name>javax.jdo.option.ConnectionUserName</name>
-    <value>hive</value>
-  </property>
-  <property>
-    <name>javax.jdo.option.ConnectionPassword</name>
-    <value>hivehive</value>
-  </property>
-  <property>
-    <name>datanucleus.autoCreateSchema</name>
-    <value>false</value>
-  </property>
-  <property>
-    <name>datanucleus.fixedDatastore</name>
-    <value>true</value>
-  </property>
-  <property>
-    <name>hive.metastore.uris</name>
-    <value>thrift://cdh5-1:9083</value>
-  </property>
-</configuration>
-
-★hiveコンソールの起動
-$ hive  ※Pathが通っているのでこれでOK
-
-★Sales
-・テーブル作成、データインポート
-hive < SALES_DDL_HIVE.sql
-hive < SALES_IMPORT_TO_HIVE.sql
-
-・SQLの例(1)
-SELECT PRODUCT_ID, COUNT(*) FROM SALES_ONE
-WHERE PRODUCT_ID LIKE 'A-%'
-GROUP BY PRODUCT_ID;
-
-・SQLの例(2)
-SELECT REGEXP_REPLACE(PRODUCT_ID, '-', ''), COUNT(*) FROM SALES_ONE
-WHERE PRODUCT_ID LIKE 'A-%'
-GROUP BY PRODUCT_ID;
-
-★Sales B2B
-・テーブル作成、データインポート
-hive < SALES_B2B_DDL_HIVE.sql
-hive < SALES_B2B_IMPORT_TO_HIVE.sql
-
-・SQLの例
+// 2011月12月31日以前に売れた商品を顧客別に集計
 SELECT ST.CUSTOMER_ID, SD.PRODUCT_ID, COUNT(*) FROM SALES_TRAN ST JOIN SALES_DETAIL SD ON ST.SALES_ID = SD.SALES_ID
 WHERE '2011-01-01' <= ST.SALES_DATE AND ST.SALES_DATE <= '2011-12-31'
 GROUP BY ST.CUSTOMER_ID, SD.PRODUCT_ID;
@@ -82,8 +11,7 @@ WHERE YEAR(ST.SALES_DATE) = '2015' AND MONTH(ST.SALES_DATE) = '01'
 GROUP BY ST.CUSTOMER_ID
 ORDER BY SALES_AMOUNT DESC;
 
-// 2015年1月の前年同月と比べて売り上げが伸びた顧客
-方法その1：ビューを使う
+// 2015年1月の前年同月と比べて売り上げが伸びた顧客 -- ビューを使う
 CREATE VIEW THIS_SALES
 AS SELECT ST.CUSTOMER_ID, SUM(SD.PRODUCT_PRICE * SD.SALES_COUNT) AS SALES_AMOUNT
 FROM SALES_TRAN ST INNER JOIN SALES_DETAIL SD
@@ -104,7 +32,7 @@ FROM THIS_SALES INNER JOIN PREV_SALES
 ON THIS_SALES.CUSTOMER_ID = PREV_SALES.CUSTOMER_ID
 ORDER BY SALES_AMOUNT_DIFF DESC;
 
-方法その2：多段ジョイン
+// 2015年1月の前年同月と比べて売り上げが伸びた顧客 -- 多段ジョイン
 SELECT ST1.CUSTOMER_ID, SUM(SD1.PRODUCT_PRICE * SD1.SALES_COUNT) THIS_SALES_AMOUNT,
 PREV_SALES_AMOUNT,
 SUM(SD1.PRODUCT_PRICE * SD1.SALES_COUNT) - PREV_SALES_AMOUNT SALES_AMOUNT_DIFF
