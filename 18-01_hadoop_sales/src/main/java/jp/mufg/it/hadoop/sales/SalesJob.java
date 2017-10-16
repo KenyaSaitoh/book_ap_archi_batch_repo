@@ -21,7 +21,7 @@ public class SalesJob {
         job.setJarByClass(SalesJob.class);
 
         // ジョブの名前を設定する。
-        job.setJobName("SalesOneJob");
+        job.setJobName("SalesJob");
 
         // Mapperクラスを設定する。
         job.setMapperClass(SalesMapper.class);
