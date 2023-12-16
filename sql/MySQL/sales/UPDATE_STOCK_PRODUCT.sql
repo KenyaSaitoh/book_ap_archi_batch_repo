@@ -1,44 +1,44 @@
 DELIMITER //
 CREATE PROCEDURE UPDATE_STOCK_PRODUCT(IN param_date DATE)
 BEGIN
--- •Ï”‚ðéŒ¾‚·‚é
+-- å¤‰æ•°ã‚’å®£è¨€ã™ã‚‹
 DECLARE var_sales_id INT DEFAULT 0;
 DECLARE done INT DEFAULT 0;
 DECLARE loop_count INT DEFAULT 0;
--- ƒJ[ƒ\ƒ‹‚ðéŒ¾‚·‚é
+-- ã‚«ãƒ¼ã‚½ãƒ«ã‚’å®£è¨€ã™ã‚‹
 DECLARE my_cur CURSOR FOR --[1]
 SELECT SALES_ID FROM SALES_TRAN WHERE SALES_DATE = param_date
 AND UPDATE_STOCK_FLAG = 0; 
--- ƒJ[ƒ\ƒ‹‚ðƒI[ƒvƒ“‚·‚é
+-- ã‚«ãƒ¼ã‚½ãƒ«ã‚’ã‚ªãƒ¼ãƒ—ãƒ³ã™ã‚‹
 OPEN my_cur; --[2]
--- ƒ‹[ƒv‚©‚ç”²‚¯‚é‚½‚ß‚Ìƒnƒ“ƒhƒ‰‚ð’è‹`‚·‚é
+-- ãƒ«ãƒ¼ãƒ—ã‹ã‚‰æŠœã‘ã‚‹ãŸã‚ã®ãƒãƒ³ãƒ‰ãƒ©ã‚’å®šç¾©ã™ã‚‹
 DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
--- ƒgƒ‰ƒ“ƒUƒNƒVƒ‡ƒ“‚ðŠJŽn‚·‚é
+-- ãƒˆãƒ©ãƒ³ã‚¶ã‚¯ã‚·ãƒ§ãƒ³ã‚’é–‹å§‹ã™ã‚‹
 START TRANSACTION; --[3]
--- ƒ‹[ƒvˆ—‚ðŠJŽn‚·‚é
+-- ãƒ«ãƒ¼ãƒ—å‡¦ç†ã‚’é–‹å§‹ã™ã‚‹
 my_cur_loop : LOOP --[4]
-  -- ƒ‹[ƒvƒJƒEƒ“ƒ^‚É1‰ÁŽZ‚·‚é
+  -- ãƒ«ãƒ¼ãƒ—ã‚«ã‚¦ãƒ³ã‚¿ã«1åŠ ç®—ã™ã‚‹
   SET loop_count = loop_count + 1;
-  -- ƒJ[ƒ\ƒ‹‚ðFETCH‚·‚éB
+  -- ã‚«ãƒ¼ã‚½ãƒ«ã‚’FETCHã™ã‚‹ã€‚
   FETCH my_cur INTO var_sales_id; --[5]
-  -- STOCK_PRODUCTƒe[ƒuƒ‹XV‚·‚é
+  -- STOCK_PRODUCTãƒ†ãƒ¼ãƒ–ãƒ«æ›´æ–°ã™ã‚‹
   UPDATE STOCK_PRODUCT SP  --[6]
   INNER JOIN (SALES_TRAN ST INNER JOIN SALES_DETAIL SD ON ST.SALES_ID = SD.SALES_ID)
   ON SP.PRODUCT_ID = SD.PRODUCT_ID
   SET SP.QUANTITY = SP.QUANTITY - SD.SALES_COUNT, ST.UPDATE_STOCK_FLAG = 1
   WHERE ST.SALES_ID = var_sales_id;
-  -- 10Œ–ˆ‚Éƒgƒ‰ƒ“ƒUƒNƒVƒ‡ƒ“‚ðƒRƒ~ƒbƒg‚µAV‚µ‚¢ƒgƒ‰ƒ“ƒUƒNƒVƒ‡ƒ“‚ðŠJŽn‚·‚é
+  -- 10ä»¶æ¯Žã«ãƒˆãƒ©ãƒ³ã‚¶ã‚¯ã‚·ãƒ§ãƒ³ã‚’ã‚³ãƒŸãƒƒãƒˆã—ã€æ–°ã—ã„ãƒˆãƒ©ãƒ³ã‚¶ã‚¯ã‚·ãƒ§ãƒ³ã‚’é–‹å§‹ã™ã‚‹
   IF loop_count % 10 = 0 THEN  --[7]
     COMMIT;
     START TRANSACTION;
   END IF;
-  -- ÅIƒf[ƒ^‚ðˆ—‚µ‚½‚çƒgƒ‰ƒ“ƒUƒNƒVƒ‡ƒ“‚ðƒRƒ~ƒbƒg‚µAƒ‹[ƒvˆ—‚©‚ç”²‚¯‚é
+  -- æœ€çµ‚ãƒ‡ãƒ¼ã‚¿ã‚’å‡¦ç†ã—ãŸã‚‰ãƒˆãƒ©ãƒ³ã‚¶ã‚¯ã‚·ãƒ§ãƒ³ã‚’ã‚³ãƒŸãƒƒãƒˆã—ã€ãƒ«ãƒ¼ãƒ—å‡¦ç†ã‹ã‚‰æŠœã‘ã‚‹
   IF done = 1 THEN
     COMMIT;
     LEAVE my_cur_loop;
   END IF;
 END LOOP my_cur_loop;
--- ƒJ[ƒ\ƒ‹‚ð•Â‚¶‚é
+-- ã‚«ãƒ¼ã‚½ãƒ«ã‚’é–‰ã˜ã‚‹
 CLOSE my_cur;
 END
 //
